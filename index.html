@@ -1,0 +1,1724 @@
+<!--
+    沉没的十七岁：高三一年
+    ============================
+    一个关于高三的纯前端文字游戏。
+
+    背景图片来源：
+        Unsplash (https://unsplash.com)
+        依据 Unsplash License 使用：
+        https://unsplash.com/license
+        免费用于商业及非商业用途，无需署名（此声明出于尊重）。
+
+    孔老师部分情节来自真实经历。
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>沉没的十七岁：高三一年</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #0a0a0a; color: #a0a0a0;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            min-height: 100vh; overflow-y: auto; overflow-x: hidden;
+            background-size: cover; background-position: center;
+            background-attachment: fixed;
+            transition: background-image 2s ease-in-out;
+            position: relative; padding: 20px 0;
+        }
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 10, 10, 0.85); z-index: 0;
+            backdrop-filter: blur(3px);
+        }
+        #name-screen {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: #0a0a0a; z-index: 200;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            gap: 20px; padding: 30px;
+        }
+        #name-screen h1 { font-size: 24px; letter-spacing: 8px; color: #d3a75e; font-weight: normal; }
+        #name-screen p { font-size: 14px; color: #666; letter-spacing: 2px; }
+        #name-screen input {
+            background: #1a1a1a; border: 1px solid #333; color: #ddd;
+            padding: 12px 20px; font-size: 16px; text-align: center;
+            border-radius: 2px; font-family: inherit; width: 200px;
+            outline: none; transition: border-color 0.3s;
+        }
+        #name-screen input:focus { border-color: #8a6d3b; }
+        #name-screen button {
+            background: rgba(138, 109, 59, 0.3); border: 1px solid #8a6d3b;
+            color: #d3c0a0; padding: 10px 40px; font-size: 14px; cursor: pointer;
+            border-radius: 2px; font-family: inherit; transition: all 0.3s;
+        }
+        #name-screen button:hover { background: rgba(138, 109, 59, 0.6); color: #fff; }
+
+        #game-container {
+            width: 100%; max-width: 520px; padding: 15px;
+            display: flex; flex-direction: column; gap: 12px;
+            z-index: 1; position: relative;
+            min-height: 100vh; margin: 0 auto; padding-bottom: 60px;
+        }
+        .top-bar { display: flex; justify-content: space-between; margin-bottom: -5px; flex-wrap: wrap; gap: 5px; }
+        .top-btn {
+            background: rgba(255,255,255,0.05); border: 1px solid #333;
+            color: #666; font-size: 11px; padding: 4px 10px;
+            border-radius: 12px; cursor: pointer; font-family: inherit;
+            transition: all 0.3s; position: relative;
+        }
+        .top-btn:hover { color: #aaa; border-color: #666; }
+        .top-btn.active { color: #b8d8b8; border-color: #6b9e6b; background: rgba(107,158,107,0.15); }
+        .top-btn .badge {
+            position: absolute; top: -5px; right: -5px;
+            background: #d35e5e; color: #fff; font-size: 9px;
+            width: 14px; height: 14px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        #stats {
+            display: flex; justify-content: space-between;
+            font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding-bottom: 8px; letter-spacing: 1px; flex-shrink: 0;
+        }
+        .stat-item { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+        .stat-value { color: #e0e0e0; font-weight: bold; font-size: 15px; transition: color 0.3s; }
+        .stat-high { color: #d35e5e; text-shadow: 0 0 8px rgba(211,94,94,0.6); }
+        .stat-low { color: #5e8ed3; text-shadow: 0 0 8px rgba(94,142,211,0.6); }
+        .stat-warm { color: #d3a75e; text-shadow: 0 0 8px rgba(211,167,94,0.6); }
+
+        #subjects-panel {
+            background: rgba(20, 20, 20, 0.8); border: 1px solid #333;
+            padding: 12px; border-radius: 4px; display: none; flex-shrink: 0;
+        }
+        .subject-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; }
+        .subject-name { width: 45px; color: #999; }
+        .subject-bar-bg { flex: 1; height: 5px; background: #222; margin: 0 10px; border-radius: 3px; overflow: hidden; }
+        .subject-bar-fill { height: 100%; width: 0%; background: #5e8ed3; transition: width 0.5s ease; }
+        .subject-val { width: 30px; text-align: right; font-weight: bold; color: #ddd; font-size: 13px; }
+
+        #feed-scroll {
+            max-height: 50vh; overflow-y: auto; padding-right: 5px;
+            display: none; flex-direction: column; gap: 15px;
+            scrollbar-width: thin; scrollbar-color: #333 transparent;
+        }
+        #feed-scroll::-webkit-scrollbar { width: 4px; }
+        #feed-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        .feed-card {
+            background: rgba(30, 30, 30, 0.6); border: 1px solid #2a2a2a;
+            border-radius: 6px; padding: 15px; display: flex; gap: 12px;
+            animation: fadeIn 0.6s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .avatar {
+            width: 40px; height: 40px; border-radius: 4px; flex-shrink: 0;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 16px; font-weight: bold; color: #fff;
+        }
+        .avatar-blue { background: #4a6fa5; }
+        .avatar-red { background: #a54a4a; }
+        .avatar-green { background: #4a7a5a; }
+        .avatar-grey { background: #555; }
+        .avatar-gold { background: #8a6d3b; }
+        
+        .feed-content { flex: 1; }
+        .feed-name { font-size: 14px; color: #8bb4e0; margin-bottom: 4px; font-weight: bold; }
+        .feed-text { font-size: 14px; line-height: 1.6; color: #c0c0c0; margin-bottom: 8px; }
+        .feed-meta { font-size: 11px; color: #666; display: flex; justify-content: space-between; margin-bottom: 10px; }
+        
+        .feed-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .action-btn {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: #999; font-size: 12px; padding: 4px 10px; border-radius: 12px;
+            cursor: pointer; transition: all 0.2s; font-family: inherit;
+        }
+        .action-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .action-btn.selected { background: rgba(107, 158, 107, 0.2); border-color: #6b9e6b; color: #b8d8b8; }
+
+        .feed-replies { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #333; font-size: 12px; color: #888; line-height: 1.6; display: none; }
+        .feed-replies.show { display: block; }
+        .feed-replies span { color: #8bb4e0; }
+
+        #phone-screen {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: #0a0a0a; z-index: 300;
+            display: none; flex-direction: column;
+            padding: 20px;
+        }
+        #phone-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 15px; border-bottom: 1px solid #333;
+            margin-bottom: 15px;
+        }
+        #phone-header h2 { font-size: 16px; color: #ddd; font-weight: normal; letter-spacing: 2px; }
+        #phone-header button {
+            background: none; border: none; color: #666; font-size: 20px;
+            cursor: pointer; font-family: inherit;
+        }
+        #phone-header button:hover { color: #fff; }
+        #phone-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .chat-item {
+            display: flex; gap: 12px; padding: 12px;
+            background: rgba(30,30,30,0.6); border: 1px solid #2a2a2a;
+            border-radius: 6px; cursor: pointer; transition: all 0.2s;
+        }
+        .chat-item:hover { background: rgba(50,50,50,0.8); border-color: #555; }
+        .chat-item .avatar { width: 40px; height: 40px; font-size: 16px; }
+        .chat-info { flex: 1; }
+        .chat-name { font-size: 14px; color: #ddd; margin-bottom: 4px; }
+        .chat-preview { font-size: 12px; color: #888; }
+        .chat-unread {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #d35e5e; align-self: center;
+        }
+        #chat-detail { display: none; flex-direction: column; flex: 1; }
+        #chat-detail-header {
+            display: flex; align-items: center; gap: 10px;
+            padding-bottom: 15px; border-bottom: 1px solid #333;
+            margin-bottom: 15px;
+        }
+        #chat-detail-header button {
+            background: none; border: none; color: #666; font-size: 18px;
+            cursor: pointer; font-family: inherit;
+        }
+        #chat-detail-header button:hover { color: #fff; }
+        #chat-detail-header span { font-size: 14px; color: #ddd; }
+        #chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-bottom: 15px; }
+        .msg {
+            max-width: 80%; padding: 10px 14px; border-radius: 6px;
+            font-size: 13px; line-height: 1.6;
+        }
+        .msg.them { background: rgba(40,40,40,0.9); color: #bbb; align-self: flex-start; }
+        .msg.me { background: rgba(107,158,107,0.3); color: #b8d8b8; align-self: flex-end; border: 1px solid #4a6a4a; }
+        #chat-options { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid #333; }
+        .chat-option-btn {
+            background: rgba(30,30,30,0.8); border: 1px solid #333;
+            color: #999; padding: 10px 14px; font-size: 13px;
+            text-align: left; cursor: pointer; border-radius: 4px;
+            font-family: inherit; transition: all 0.2s;
+        }
+        .chat-option-btn:hover { background: rgba(50,50,50,0.9); color: #fff; border-color: #555; }
+
+        #relief-panel {
+            background: rgba(20, 20, 20, 0.9); border: 1px solid #444;
+            padding: 15px; border-radius: 4px; display: none; flex-direction: column; gap: 10px;
+        }
+        #relief-panel h3 { font-size: 14px; color: #d3a75e; font-weight: normal; margin-bottom: 5px; }
+        .relief-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .relief-btn {
+            background: rgba(30, 30, 30, 0.8); border: 1px solid #333;
+            color: #999; padding: 10px; font-size: 13px; cursor: pointer;
+            border-radius: 2px; font-family: inherit; transition: all 0.2s;
+            text-align: center;
+        }
+        .relief-btn:hover { background: rgba(50, 50, 50, 0.9); color: #fff; border-color: #555; }
+        .relief-btn.risky { border-color: #5a3a3a; color: #b08d8d; }
+        .relief-btn.risky:hover { background: rgba(90, 58, 58, 0.5); border-color: #a54a4a; color: #e0a0a0; }
+        .relief-btn.selected { border-color: #6b9e6b; background: rgba(60, 80, 60, 0.3); color: #b8d8b8; }
+
+        #options { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+        .option-btn {
+            background-color: rgba(30, 30, 30, 0.7); border: 1px solid rgba(255,255,255,0.1);
+            color: #999; padding: 12px 16px; font-size: 14px;
+            text-align: left; cursor: pointer; transition: all 0.2s;
+            border-radius: 2px; font-family: inherit; backdrop-filter: blur(4px);
+        }
+        .option-btn:hover { background-color: rgba(50, 50, 50, 0.9); color: #fff; border-color: #555; }
+        .option-btn.selected { border-color: #6b9e6b; background: rgba(60, 80, 60, 0.3); color: #b8d8b8; }
+        .option-btn.warm { border-color: #8a6d3b; background: rgba(60, 50, 30, 0.3); color: #d3c0a0; }
+        .option-btn.warm:hover { background: rgba(80, 65, 40, 0.5); border-color: #b08d4b; }
+
+        #text-box {
+            min-height: 90px; font-size: 14px; line-height: 1.8;
+            color: #b8b8b8; white-space: pre-wrap; letter-spacing: 0.5px;
+            border-left: 2px solid #333; padding-left: 12px; flex-shrink: 0;
+        }
+        .cursor { display: inline-block; width: 5px; height: 15px; background: #b8b8b8; animation: blink 1s step-end infinite; vertical-align: middle; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        #toast {
+            position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+            background: rgba(211, 94, 94, 0.95); color: #fff; padding: 8px 16px;
+            border-radius: 4px; font-size: 13px; opacity: 0; transition: opacity 0.3s;
+            pointer-events: none; z-index: 400; text-align: center; max-width: 90%;
+        }
+        #toast.show { opacity: 1; }
+        #toast.warm { background: rgba(180, 140, 70, 0.95); }
+
+        #toolbar { display: flex; justify-content: space-between; font-size: 11px; color: #555; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; }
+        .tool-btn { background: none; border: none; color: #555; cursor: pointer; font-family: inherit; font-size: 11px; transition: color 0.3s; }
+        .tool-btn:hover { color: #aaa; }
+
+        /* ========== 反应力小游戏 ========== */
+        #minigame-screen {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 500;
+            display: none;
+            justify-content: center; align-items: center;
+            flex-direction: column;
+            cursor: pointer;
+            user-select: none;
+            background: rgba(20, 20, 20, 0.95);
+            transition: background 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #minigame-content { text-align: center; padding: 30px; }
+        .mg-status { font-size: 22px; color: #ddd; letter-spacing: 4px; }
+        .mg-danger { font-size: 34px; color: #fff; font-weight: bold; letter-spacing: 4px; animation: shake 0.2s infinite; }
+        .mg-hint { font-size: 13px; color: #aaa; margin-top: 15px; letter-spacing: 2px; }
+        .mg-round { font-size: 11px; color: #666; margin-top: 8px; letter-spacing: 3px; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        /* ========== 结局图鉴 ========== */
+        .ending-list { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; padding-right: 5px; }
+        .ending-item {
+            background: rgba(30,30,30,0.7); border: 1px solid #333;
+            border-radius: 4px; padding: 12px 15px; font-size: 13px;
+            display: flex; justify-content: space-between; align-items: center;
+            transition: all 0.3s;
+        }
+        .ending-item.unlocked { border-color: #6b9e6b; color: #b8d8b8; }
+        .ending-item.locked { color: #444; }
+        .ending-item .ending-name { letter-spacing: 2px; }
+        .ending-item .ending-tag { font-size: 11px; color: #666; }
+        .ending-item.unlocked .ending-tag { color: #6b9e6b; }
+    </style>
+</head>
+<body>
+
+<div id="name-screen">
+    <h1>沉没的十七岁</h1>
+    <p>请输入你的名字</p>
+    <input type="text" id="player-name-input" placeholder="你的名字" maxlength="10">
+    <button onclick="startGame()">开始高三</button>
+</div>
+
+<div id="game-container">
+    <div class="top-bar">
+        <button class="top-btn" id="btn-chat" onclick="openPhone()">💬 聊天 <span class="badge" id="phone-badge" style="display:none;">!</span></button>
+        <button class="top-btn" id="audio-toggle" onclick="toggleAudio()">🔇 环境音：关</button>
+    </div>
+    <div id="stats">
+        <div class="stat-item">月份 <span id="stat-month" class="stat-value">9月</span></div>
+        <div class="stat-item">压力 <span id="stat-stress" class="stat-value">20</span></div>
+        <div class="stat-item">精力 <span id="stat-energy" class="stat-value">80</span></div>
+        <div class="stat-item">孔老师 <span id="stat-kong" class="stat-value stat-warm">65</span></div>
+    </div>
+
+    <div id="subjects-panel">
+        <div class="subject-row"><span class="subject-name">语文</span><div class="subject-bar-bg"><div id="bar-chinese" class="subject-bar-fill"></div></div><span id="val-chinese" class="subject-val">50</span></div>
+        <div class="subject-row"><span class="subject-name">数学</span><div class="subject-bar-bg"><div id="bar-math" class="subject-bar-fill"></div></div><span id="val-math" class="subject-val">50</span></div>
+        <div class="subject-row"><span class="subject-name">英语</span><div class="subject-bar-bg"><div id="bar-english" class="subject-bar-fill"></div></div><span id="val-english" class="subject-val">50</span></div>
+        <div class="subject-row"><span class="subject-name">综合</span><div class="subject-bar-bg"><div id="bar-comprehensive" class="subject-bar-fill"></div></div><span id="val-comprehensive" class="subject-val">50</span></div>
+    </div>
+
+    <div id="relief-panel">
+        <h3>本月压力释放计划</h3>
+        <div class="relief-grid">
+            <button class="relief-btn" onclick="selectRelief('rest')">💤 休息</button>
+            <button class="relief-btn" onclick="selectRelief('music')">🎵 听音乐</button>
+            <button class="relief-btn" onclick="selectRelief('walk')">🚶 散步</button>
+            <button class="relief-btn risky" onclick="selectRelief('phone')">📱 玩手机（一次失败即被发现）</button>
+            <button class="relief-btn risky" onclick="selectRelief('skip')">🏃 逃课（一次失败即被发现）</button>
+        </div>
+    </div>
+
+    <div id="feed-scroll"></div>
+    <div id="text-box"></div>
+    <div id="options"></div>
+
+    <div id="toolbar">
+        <button class="tool-btn" id="btn-save">💾 存档</button>
+        <button class="tool-btn" id="btn-load">📂 读档</button>
+        <button class="tool-btn" onclick="resetGame()">🔄 重来</button>
+    </div>
+</div>
+
+<div id="phone-screen">
+    <div id="phone-header">
+        <h2>聊天</h2>
+        <button onclick="closePhone()">✕</button>
+    </div>
+    <div id="phone-content"></div>
+    <div id="chat-detail">
+        <div id="chat-detail-header">
+            <button onclick="backToChats()">←</button>
+            <span id="chat-detail-name">聊天</span>
+        </div>
+        <div id="chat-messages"></div>
+        <div id="chat-options"></div>
+    </div>
+</div>
+
+<div id="minigame-screen">
+    <div id="minigame-content"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    // ================= 音频 =================
+    let audioCtx = null, rainSource = null, chatterSource = null, audioEnabled = false;
+    function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    function toggleAudio() {
+        initAudio();
+        const btn = document.getElementById('audio-toggle');
+        if (audioEnabled) {
+            if (rainSource) { rainSource.stop(); rainSource = null; }
+            if (chatterSource) { chatterSource.stop(); chatterSource = null; }
+            audioEnabled = false; btn.textContent = '🔇 环境音：关'; btn.classList.remove('active');
+        } else {
+            const rainBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+            const rainData = rainBuffer.getChannelData(0);
+            for (let i = 0; i < rainData.length; i++) rainData[i] = Math.random() * 2 - 1;
+            rainSource = audioCtx.createBufferSource(); rainSource.buffer = rainBuffer; rainSource.loop = true;
+            const rainFilter = audioCtx.createBiquadFilter(); rainFilter.type = 'lowpass'; rainFilter.frequency.value = 800;
+            const rainGain = audioCtx.createGain(); rainGain.gain.value = 0.08;
+            rainSource.connect(rainFilter); rainFilter.connect(rainGain); rainGain.connect(audioCtx.destination); rainSource.start();
+
+            const chatterBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+            const chatterData = chatterBuffer.getChannelData(0);
+            let lastOut = 0;
+            for (let i = 0; i < chatterData.length; i++) {
+                const white = Math.random() * 2 - 1;
+                chatterData[i] = (lastOut + (0.02 * white)) / 1.02; lastOut = chatterData[i]; chatterData[i] *= 3.5;
+            }
+            chatterSource = audioCtx.createBufferSource(); chatterSource.buffer = chatterBuffer; chatterSource.loop = true;
+            const chatterFilter = audioCtx.createBiquadFilter(); chatterFilter.type = 'bandpass'; chatterFilter.frequency.value = 1000; chatterFilter.Q.value = 0.5;
+            const chatterGain = audioCtx.createGain(); chatterGain.gain.value = 0.04;
+            chatterSource.connect(chatterFilter); chatterFilter.connect(chatterGain); chatterGain.connect(audioCtx.destination); chatterSource.start();
+            audioEnabled = true; btn.textContent = '🔊 环境音：开'; btn.classList.add('active');
+        }
+    }
+
+    // ================= 背景图库 =================
+    // 图片来源：Unsplash (https://unsplash.com) — 依据 Unsplash License 使用
+    const backgrounds = {
+        classroom: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?q=80&w=1000&auto=format&fit=crop',
+        corridor: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?q=80&w=1000&auto=format&fit=crop',
+        rain: 'https://images.unsplash.com/photo-1519692933481-e7c6d3e6a6f6?q=80&w=1000&auto=format&fit=crop',
+        night: 'https://images.unsplash.com/photo-1507400492013-162706c8c05e?q=80&w=1000&auto=format&fit=crop',
+        exam: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=1000&auto=format&fit=crop',
+        dorm: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1000&auto=format&fit=crop'
+    };
+    function setBackground(scene) { if (backgrounds[scene]) document.body.style.backgroundImage = `url('${backgrounds[scene]}')`; }
+
+    // ================= 题库 =================
+    const questionBank = {
+        chinese: [
+            { q: "“无边落木萧萧下”的下一句是？", a: ["不尽长江滚滚来", "唯见江心秋月白", "长使英雄泪满襟"], correct: 0 },
+            { q: "《红楼梦》的作者是？", a: ["罗贯中", "曹雪芹", "施耐庵"], correct: 1 },
+            { q: "“先天下之忧而忧”出自？", a: ["《醉翁亭记》", "《岳阳楼记》", "《滕王阁序》"], correct: 1 },
+            { q: "下列词语中，没有错别字的一项是？", a: ["川流不息", "穿流不息", "串流不息"], correct: 0 },
+            { q: "《老人与海》的作者是？", a: ["海明威", "马尔克斯", "福克纳"], correct: 0 },
+            { q: "“一鼓作气，再而衰，三而____” 空缺处应填？", a: ["竭", "衰", "止"], correct: 0 },
+            { q: "“山重水复疑无路”的下一句是？", a: ["柳暗花明又一村", "轻舟已过万重山", "长使英雄泪满襟"], correct: 0 },
+            { q: "鲁迅的第一部白话小说是？", a: ["《狂人日记》", "《阿Q正传》", "《孔乙己》"], correct: 0 }
+        ],
+        math: [
+            { q: "函数 f(x)=x² 在 x=2 处的导数是？", a: ["2", "4", "8"], correct: 1 },
+            { q: "sin(π/6) 的值是？", a: ["1/2", "√2/2", "√3/2"], correct: 0 },
+            { q: "等差数列 1,4,7... 的第10项是？", a: ["25", "28", "31"], correct: 1 },
+            { q: "不等式 |x-1| < 2 的解集是？", a: ["(-1, 3)", "(-2, 2)", "(0, 2)"], correct: 0 },
+            { q: "圆的面积公式是？", a: ["2πr", "πr²", "πd"], correct: 1 },
+            { q: "log₂8 的值是？", a: ["2", "3", "4"], correct: 1 },
+            { q: "cos(0) 的值是？", a: ["0", "1", "-1"], correct: 1 },
+            { q: "1+2+3+...+100 的和是？", a: ["4950", "5000", "5050"], correct: 2 }
+        ],
+        english: [
+            { q: "“abandon” 的中文意思是？", a: ["放弃", "坚持", "努力"], correct: 0 },
+            { q: "选择正确的时态：I ___ here since 2020.", a: ["live", "have lived", "lived"], correct: 1 },
+            { q: "“ambiguous” 的意思是？", a: ["明确的", "模棱两可的", "复杂的"], correct: 1 },
+            { q: "“He is used to ___ early.” 应该填？", a: ["get up", "getting up", "got up"], correct: 1 },
+            { q: "“Give up” 的意思是？", a: ["放弃", "给上", "向上"], correct: 0 },
+            { q: "“in spite of” 的意思是？", a: ["因为", "尽管", "由于"], correct: 1 },
+            { q: "“He insisted on ___ to the party.” 应该填？", a: ["go", "going", "gone"], correct: 1 },
+            { q: "“glad” 与下列哪个词意思最接近？", a: ["sad", "happy", "angry"], correct: 1 }
+        ],
+        comprehensive: [
+            { q: "牛顿第一定律又称？", a: ["惯性定律", "万有引力定律", "作用力与反作用力"], correct: 0 },
+            { q: "细胞进行有氧呼吸的主要场所是？", a: ["细胞核", "线粒体", "核糖体"], correct: 1 },
+            { q: "“冷战”开始的标志是？", a: ["杜鲁门主义", "马歇尔计划", "北约成立"], correct: 0 },
+            { q: "电流的单位是？", a: ["伏特", "安培", "欧姆"], correct: 1 },
+            { q: "DNA 的双螺旋结构由谁提出？", a: ["达尔文", "沃森和克里克", "孟德尔"], correct: 1 },
+            { q: "水的化学式是？", a: ["CO₂", "H₂O", "O₂"], correct: 1 },
+            { q: "下列不属于中国四大发明的是？", a: ["造纸术", "地动仪", "印刷术"], correct: 1 },
+            { q: "光合作用主要发生在植物细胞的？", a: ["细胞核", "叶绿体", "线粒体"], correct: 1 }
+        ]
+    };
+
+    // ================= 朋友圈数据 =================
+    const feedDatabase = {
+        0: [
+            { name: "张浩", avatar: "张", color: "avatar-blue", text: "高三了。加油！今天在桌上刻了“逆袭”两个字。", time: "9月1日 23:45", likes: "李雷、韩梅梅", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "张浩：谢谢兄弟！" },
+                { label: "💬 评论：加油", type: "comment", effect: { energy: -5, stress: -2 }, reply: "张浩：一起逆袭！" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +5 }, reply: "（你默默划过去了，心里有点堵。）" }
+            ]},
+            { name: "韩梅梅", avatar: "韩", color: "avatar-green", text: "深夜刷题，窗外星星很好看。虽然很累，但觉得未来可期。", time: "9月12日 01:20", likes: "李雷、张浩", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "韩梅梅：谢谢！" },
+                { label: "💬 评论：注意身体", type: "comment", effect: { energy: -5, stress: -3 }, reply: "韩梅梅：你也是，早点睡。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +5 }, reply: "（你看到她凌晨还在发朋友圈，觉得自己很没用。）" }
+            ]}
+        ],
+        1: [
+            { name: "王强", avatar: "王", color: "avatar-grey", text: "第一次月考结束。理综卷子写不完，根本写不完。毁灭吧。", time: "10月8日 18:30", likes: "李雷", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "王强：谢谢……" },
+                { label: "💬 评论：我也是", type: "comment", effect: { energy: -5, stress: -3 }, reply: "王强：抱团取暖，一起毁灭。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +5 }, reply: "（你不敢面对和他一样的惨状。）" }
+            ]},
+            { name: "李雷", avatar: "李", color: "avatar-red", text: "今天班主任在走廊把我骂了一顿，说我的成绩连大专都悬。", time: "10月15日 12:00", likes: "", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "李雷：别赞了，烦。" },
+                { label: "💬 评论：别往心里去", type: "comment", effect: { energy: -5, stress: -5 }, reply: "李雷：嗯，习惯了。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +5 }, reply: "（你怕自己也挨骂，假装没看见。）" }
+            ]}
+        ],
+        2: [
+            { name: "张浩", avatar: "张", color: "avatar-blue", text: "凌晨两点。班里的灯还亮着。有人在哭，有人在笑。", time: "11月5日 02:00", likes: "李雷", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "张浩：你也没睡？" },
+                { label: "💬 评论：你还好吗", type: "comment", effect: { energy: -5, stress: -5 }, reply: "张浩：不太好，但还得撑。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +5 }, reply: "（你翻了个身，强迫自己闭上眼睛。）" }
+            ]},
+            { name: "王强", avatar: "王", color: "avatar-grey", text: "头疼，眼花，手抖。明天还要上早自习。我恨这个世界。", time: "11月12日 23:50", likes: "张浩", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "王强：共鸣了。" },
+                { label: "💬 评论：保重", type: "comment", effect: { energy: -5, stress: -5 }, reply: "王强：谢谢你，但保重不了。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +5 }, reply: "（你叹了口气，继续看自己的错题本。）" }
+            ]}
+        ],
+        3: [
+            { name: "韩梅梅", avatar: "韩", color: "avatar-green", text: "冬天到了，早上5点起床，天还是黑的。我觉得自己像是一台机器。", time: "12月2日 05:30", likes: "李雷", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "韩梅梅：你也是早起的鸟儿。" },
+                { label: "💬 评论：抱抱", type: "comment", effect: { energy: -5, stress: -5 }, reply: "韩梅梅：抱抱，互相取暖。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +5 }, reply: "（你不敢给她温暖，因为你也很冷。）" }
+            ]},
+            { name: "张浩", avatar: "张", color: "avatar-blue", text: "今天在走廊看到他/她路过，开心了一整天。虽然我们连话都没说。", time: "12月10日 22:00", likes: "王强", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -2 }, reply: "张浩：嘿嘿，谢谢。" },
+                { label: "💬 评论：有情况啊", type: "comment", effect: { energy: -5, stress: -3 }, reply: "张浩：别瞎说，只是暗恋。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +5 }, reply: "（你甚至没有力气去羡慕。）" }
+            ]}
+        ],
+        4: [
+            { name: "李雷", avatar: "李", color: "avatar-red", text: "寒假？不存在的。只有补课班。", time: "1月15日 08:00", likes: "王强", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "李雷：同是天涯沦落人。" },
+                { label: "💬 评论：我都忘了寒假是什么", type: "comment", effect: { energy: -5, stress: -3 }, reply: "李雷：哈哈哈哈，笑着笑着就哭了。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +5 }, reply: "（你合上了手机，翻开英语阅读。）" }
+            ]},
+            { name: "韩梅梅", avatar: "韩", color: "avatar-green", text: "过年了。亲戚问我成绩，我笑着说还行。其实我心里在滴血。", time: "1月25日 19:30", likes: "张浩", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "韩梅梅：谢谢。" },
+                { label: "💬 评论：太难了", type: "comment", effect: { energy: -5, stress: -4 }, reply: "韩梅梅：我真的不想过年。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +5 }, reply: "（你觉得亲戚的盘问也快要把你逼疯了。）" }
+            ]}
+        ],
+        5: [
+            { name: "王强", avatar: "王", color: "avatar-grey", text: "百日誓师大会。喊口号的时候，我喊得很大声。但喊完，我有点想哭。", time: "2月27日 11:00", likes: "张浩", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "王强：口号终究是口号。" },
+                { label: "💬 评论：我也一样", type: "comment", effect: { energy: -5, stress: -5 }, reply: "王强：太讽刺了，喊着响亮的口号，心里却在崩溃。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +5 }, reply: "（你跟着喊了，但你觉得全是虚的。）" }
+            ]}
+        ],
+        6: [
+            { name: "韩梅梅", avatar: "韩", color: "avatar-green", text: "百日誓师后，大家都变了。变得更沉默了。没有人再开玩笑。", time: "3月5日 22:00", likes: "李雷", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "韩梅梅：是啊，气氛好压抑。" },
+                { label: "💬 评论：抱抱", type: "comment", effect: { energy: -5, stress: -5 }, reply: "韩梅梅：谢谢你，你也是。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +6 }, reply: "（你感觉教室像个棺材。）" }
+            ]},
+            { name: "张浩", avatar: "张", color: "avatar-blue", text: "理综写不完，数学压轴题不会做，英语听力听不懂。想放弃了。", time: "3月15日 23:50", likes: "王强", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -2 }, reply: "张浩：谢谢陪伴。" },
+                { label: "💬 评论：别放弃", type: "comment", effect: { energy: -5, stress: -5 }, reply: "张浩：我也想不放弃，但我好累。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +8 }, reply: "（你自己也在崩溃边缘，无能为力。）" }
+            ]}
+        ],
+        7: [
+            { name: "李雷", avatar: "李", color: "avatar-red", text: "凌晨三点，我把错题本撕了。然后又蹲在地上把碎片捡起来，一点一点拼好。", time: "4月10日 03:00", likes: "张浩、韩梅梅", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "李雷：别赞了，我好疯。" },
+                { label: "💬 评论：你还好吗", type: "comment", effect: { energy: -5, stress: -8 }, reply: "李雷：我觉得我快撑不住了。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +10 }, reply: "（你看着手机屏幕，感到一阵窒息。大家都疯了。）" }
+            ]}
+        ],
+        8: [
+            { name: "韩梅梅", avatar: "韩", color: "avatar-green", text: "我好像没有朋友了。大家都在拼命，没人有空理我。", time: "4月18日 21:00", likes: "李雷", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "韩梅梅：谢谢你还愿意给我点赞。" },
+                { label: "💬 评论：我在", type: "comment", effect: { energy: -8, stress: -10 }, reply: "韩梅梅：谢谢你……看到这两个字，我哭了。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +15 }, reply: "（你也很孤独，但你连回复的力气都没有了。）" }
+            ]},
+            { name: "王强", avatar: "王", color: "avatar-grey", text: "最后一次模拟考。随便吧。考什么样我都认了。", time: "5月15日 11:30", likes: "张浩", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "王强：谢谢你还在。" },
+                { label: "💬 评论：一起加油", type: "comment", effect: { energy: -5, stress: -5 }, reply: "王强：嗯，就剩最后半个月了。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +8 }, reply: "（你们已经很久没说话了。）" }
+            ]}
+        ],
+        9: [
+            { name: "张浩", avatar: "张", color: "avatar-blue", text: "明天高考。今晚睡不着。祝大家都有光明的未来。", time: "6月5日 23:00", likes: "李雷、韩梅梅、王强", interactions: [
+                { label: "👍 点赞", type: "like", effect: { energy: -2, stress: -1 }, reply: "张浩：愿我们都能如愿。" },
+                { label: "💬 评论：一起加油", type: "comment", effect: { energy: -5, stress: -5 }, reply: "张浩：加油，最后一天了。" },
+                { label: "👀 无视", type: "ignore", effect: { stress: +10 }, reply: "（你放下手机，看着天花板。明天就是审判日。）" }
+            ]}
+        ]
+    };
+
+    // ================= 聊天数据 =================
+    const chatDatabase = {
+        0: [
+            { id: "mom", name: "妈妈", avatar: "妈", color: "avatar-gold", messages: [
+                { from: "them", text: "最近学习怎么样？吃得饱吗？" },
+                { from: "them", text: "高三了，要抓紧啊。妈妈相信你。" }
+            ], options: [
+                { text: "还行，妈。不用担心。", reply: "妈妈：那就好，钱不够跟妈说。", effect: { stress: +5 } },
+                { text: "压力挺大的。", reply: "妈妈：压力大也要坚持，咱们家就指望你了。", effect: { stress: +15 } }
+            ]},
+            { id: "teacher", name: "班主任", avatar: "班", color: "avatar-red", messages: [
+                { from: "them", text: "开学摸底考成绩出来了，你自己看一下。" },
+                { from: "them", text: "按这个成绩，本科线很悬。" }
+            ], options: [
+                { text: "老师，我会努力的。", reply: "班主任：光说没用，看行动。", effect: { stress: +10 } },
+                { text: "嗯。", reply: "班主任：你这个态度就不行。", effect: { stress: +15 } }
+            ]}
+        ],
+        1: [
+            { id: "mom", name: "妈妈", avatar: "妈", color: "avatar-gold", messages: [
+                { from: "them", text: "第一次月考多少分？" },
+                { from: "them", text: "隔壁小雨说你们班平均分挺高的。" }
+            ], options: [
+                { text: "还没出来呢。", reply: "妈妈：出来了记得跟妈说。", effect: { stress: +10 } },
+                { text: "考得不太好。", reply: "妈妈：没事，下次努力就行。但你能感觉到她语气里的失望。", effect: { stress: +15 } }
+            ]},
+            { id: "deskmate", name: "同桌", avatar: "同", color: "avatar-green", messages: [
+                { from: "them", text: "数学卷子你写完了吗？借我看看最后一道大题。" },
+                { from: "them", text: "我感觉我要完了，这次又不及格。" }
+            ], options: [
+                { text: "我也没写出来。", reply: "同桌：唉，抱抱。", effect: { stress: -5 } },
+                { text: "别抄了，一起研究一下吧。", reply: "同桌：好兄弟！", effect: { stress: -10, energy: -5 } }
+            ]}
+        ],
+        2: [
+            { id: "mom", name: "妈妈", avatar: "妈", color: "avatar-gold", messages: [
+                { from: "them", text: "最近怎么都不回消息？" },
+                { from: "them", text: "你爸说你最近瘦了，是不是没好好吃饭。" }
+            ], options: [
+                { text: "在忙，没看手机。", reply: "妈妈：别太累了，身体要紧。", effect: { stress: +5 } },
+                { text: "没事，就是有点累。", reply: "妈妈：累了就歇歇，别硬撑。但高三哪有不累的呢。", effect: { stress: +10 } }
+            ]},
+            { id: "teacher", name: "班主任", avatar: "班", color: "avatar-red", messages: [
+                { from: "them", text: "期中考试成绩出来了。" },
+                { from: "them", text: "你来找我办公室一趟。" }
+            ], options: [
+                { text: "好的老师，我这就来。", reply: "（你去了办公室，被训了20分钟。）", effect: { stress: +20 } },
+                { text: "老师，我能不能不去？", reply: "班主任：你这是什么态度？现在就来！", effect: { stress: +30 } }
+            ]}
+        ],
+        3: [
+            { id: "mom", name: "妈妈", avatar: "妈", color: "avatar-gold", messages: [
+                { from: "them", text: "天冷了，多穿点。" },
+                { from: "them", text: "妈给你卡里打了点钱，买点好吃的。" }
+            ], options: [
+                { text: "谢谢妈。", reply: "妈妈：不客气，好好学习就行。", effect: { stress: -10 } },
+                { text: "妈，我想你了。", reply: "妈妈：……妈也想你。等你考完试就回来。", effect: { stress: -15 } }
+            ]},
+            { id: "deskmate", name: "同桌", avatar: "同", color: "avatar-green", messages: [
+                { from: "them", text: "你最近晚上几点睡啊？" },
+                { from: "them", text: "我每天1点睡，感觉自己要猝死了。" }
+            ], options: [
+                { text: "我也差不多。", reply: "同桌：抱抱，我们都是苦命人。", effect: { stress: -5 } },
+                { text: "别熬了，身体要紧。", reply: "同桌：你说得对，但我停不下来。", effect: { stress: +5 } }
+            ]}
+        ],
+        4: [
+            { id: "mom", name: "妈妈", avatar: "妈", color: "avatar-gold", messages: [
+                { from: "them", text: "期末考试怎么样？" },
+                { from: "them", text: "你爸说，考不上好大学，你这辈子就完了。" }
+            ], options: [
+                { text: "我知道，我会努力的。", reply: "妈妈：嗯，妈信你。", effect: { stress: +15 } },
+                { text: "……", reply: "妈妈：你说话啊！", effect: { stress: +25 } }
+            ]}
+        ],
+        5: [
+            { id: "mom", name: "妈妈", avatar: "妈", color: "avatar-gold", messages: [
+                { from: "them", text: "百日誓师了吧？" },
+                { from: "them", text: "妈在电视上看到了，你们学校搞得挺隆重的。" }
+            ], options: [
+                { text: "嗯，喊了口号。", reply: "妈妈：加油，妈在家给你祈福。", effect: { stress: -5 } },
+                { text: "没什么用，喊完还是那样。", reply: "妈妈：别这么说，有仪式感也是好的。", effect: { stress: +10 } }
+            ]},
+            { id: "teacher", name: "班主任", avatar: "班", color: "avatar-red", messages: [
+                { from: "them", text: "百日誓师之后，大家状态都不一样了。" },
+                { from: "them", text: "我希望你别掉队。" }
+            ], options: [
+                { text: "老师，我会坚持的。", reply: "班主任：好，我记住了。", effect: { stress: +5 } },
+                { text: "我尽力。", reply: "班主任：尽全力，不是尽力。", effect: { stress: +15 } }
+            ]}
+        ],
+        6: [
+            { id: "mom", name: "妈妈", avatar: "妈", color: "avatar-gold", messages: [
+                { from: "them", text: "一模成绩出来了吗？" },
+                { from: "them", text: "妈不问你多少分，妈只想知道你还好吗。" }
+            ], options: [
+                { text: "我挺好的，妈。", reply: "妈妈：好，那就好。", effect: { stress: -15 } },
+                { text: "妈，我好累。", reply: "妈妈：……累了就歇一会儿。妈不逼你。", effect: { stress: -25 } }
+            ]}
+        ],
+        7: [
+            { id: "mom", name: "妈妈", avatar: "妈", color: "avatar-gold", messages: [
+                { from: "them", text: "二模成绩我看到了。" },
+                { from: "them", text: "还有一个月，你别放弃。" }
+            ], options: [
+                { text: "我不放弃。", reply: "妈妈：好孩子。", effect: { stress: +5 } },
+                { text: "万一考不上怎么办？", reply: "妈妈：考不上就考不上，你永远是妈的孩子。", effect: { stress: -20 } }
+            ]},
+            { id: "deskmate", name: "同桌", avatar: "同", color: "avatar-green", messages: [
+                { from: "them", text: "我最近老是走神，做题的时候脑子里一片空白。" },
+                { from: "them", text: "你说我们这么拼，到底为了什么？" }
+            ], options: [
+                { text: "不知道，但只能拼下去。", reply: "同桌：是啊，只能拼下去。", effect: { stress: +10 } },
+                { text: "为了不后悔吧。", reply: "同桌：嗯，为了不后悔。", effect: { stress: -10 } }
+            ]}
+        ],
+        8: [
+            { id: "mom", name: "妈妈", avatar: "妈", color: "avatar-gold", messages: [
+                { from: "them", text: "快考试了，妈给你寄了点吃的。" },
+                { from: "them", text: "别给自己太大压力。考成什么样，妈都高兴。" }
+            ], options: [
+                { text: "谢谢妈。", reply: "妈妈：傻孩子，跟妈客气什么。", effect: { stress: -20 } },
+                { text: "妈，我怕考不好。", reply: "妈妈：不怕。考不好就考不好，天塌不下来。", effect: { stress: -30 } }
+            ]}
+        ],
+        9: [
+            { id: "mom", name: "妈妈", avatar: "妈", color: "avatar-gold", messages: [
+                { from: "them", text: "明天就高考了。" },
+                { from: "them", text: "妈只想跟你说一句：不管结果如何，你永远是我的骄傲。" }
+            ], options: [
+                { text: "妈，谢谢你。", reply: "妈妈：去吧，好好考。妈在家等你。", effect: { stress: -30 } },
+                { text: "我尽力。", reply: "妈妈：嗯，尽力就好。", effect: { stress: -20 } }
+            ]}
+        ]
+    };
+
+    // ================= 孔老师 · 自动触发事件 =================
+    const kongMoments = {
+        0: {
+            title: "9月 · 开学第一天",
+            text: "开学第一天，你在校门口碰到孔老师。\n\n“孔老师好。”你下意识喊了一声。\n\n他脚步没停，只点了点头。走出两步，又回头看了你一眼。\n\n——其实他早就认识你。高二那年你坐在靠窗第三排，历史课总是低着头。他从来没提过，但你喊他那一瞬间，他记得。",
+            kong: +2
+        },
+        1: {
+            title: "10月 · 拔草",
+            text: "10月，学校安排拔草，全班被拉到操场边。\n\n太阳很大，草叶划得手背发痒。孔老师从教学楼那边走过来，在每个人身边都停了一下：\n\n“小心点，别划到手。”\n\n“你也是，小心点。”\n\n“慢点拔，别伤着。”\n\n他一个一个说过去，声音不高，但每个人都听到了。走到你面前的时候，他也是这么说的。\n\n——没有什么特别。他对所有人都一样。",
+            kong: +3
+        },
+        3: {
+            title: "12月 · 体育课之后",
+            text: "12月，体育课刚下，你穿着单薄的校服冲进教室，后背还带着汗。\n\n孔老师已经在讲台上了。他让全班起立背知识点，一边背，一边从讲台上走下来。\n\n“不热了就把衣服穿起来。”\n\n他走过一排又一排，对每一个脱了外套的同学都说了同一句话。走到你旁边的时候，他顿了一下，还是那句：“穿起来吧，别着凉。”\n\n——他谁都没落下。你只是其中一个。",
+            kong: +3
+        },
+        6: {
+            title: "3月 · 大扫除",
+            text: "3月，学校组织大扫除。\n\n你站在窗边擦玻璃。孔老师路过，脚步停了。\n\n“{name}，小心点，别划伤手了。”\n\n你蹲下去擦瓷砖。他又走过来：“{name}，累了吧？站起来休息休息。”\n\n旁边擦桌子的同学他也叫了名字，让小心别磕着。擦黑板的那位，他也叮嘱了一句。\n\n打扫完，他站在门口，对所有人说：“今天谢谢你们，辛苦了。”\n\n——他都叫了。一个都没少。",
+            kong: +4
+        },
+        7: {
+            title: "4月 · 被点名回答",
+            text: "4月，历史课，孔老师点你起来回答问题。\n\n你站起来，声音发虚，几乎只有自己能听见。答完，你低着头，等着被说“坐下吧”。\n\n但他没有。\n\n“回答得非常好。”他说，声音很稳，“声音再大一点。”\n\n你抬起头。他正看着你，眼神里没有催促，只有等。\n\n下一个同学站起来，答得也不响。他也说了同样的话：“很好，再大声一点。”\n\n——他给每个人的，都是同一份耐心。",
+            kong: +3
+        },
+        8: {
+            title: "5月 · 默写纸上的红圈",
+            text: "5月，二模成绩出来了。你历史考了87分，班里最高的之一。\n\n孔老师在走廊上叫住你。\n\n“平时默写就默得很好，”他说，“所以这次考试也考得很好。”\n\n他说得很平淡，但你听得出，那是真心话。\n\n你想起某一天的历史课，他把默写纸发下来，你错了一个。他拿着你的默写纸看了几秒，然后用红笔在错处画了一个圈。\n\n“你其实都会，就是粗心。”他把纸递还给你，“下次注意。”\n\n在别的课上，你从来得不到这种耐心。\n\n在所有人都只盯着你的总分、排名、分数线的时候，只有他，记得你那些默写纸上的努力。",
+            kong: +5
+        }
+    };
+
+    // ================= 减压选项 =================
+    const reliefOptions = [
+        { id: 'rest', name: '💤 休息', effect: { energy: +30, stress: -25 } },
+        { id: 'music', name: '🎵 听音乐', effect: { energy: +15, stress: -35 } },
+        { id: 'walk', name: '🚶 散步', effect: { energy: -5, stress: -45 } },
+        { id: 'phone', name: '📱 玩手机', effect: { energy: -10, stress: -55 }, minigame: 'phone', caught: { stress: +40, score: -15 } },
+        { id: 'skip', name: '🏃 逃课', effect: { energy: +25, stress: -70 }, minigame: 'skip', caught: { stress: +60, score: -25, energy: -20 } }
+    ];
+
+    // ================= 结局图鉴 =================
+    const allEndings = [
+        { id: 'sink', name: '沉没', desc: '压力爆表，倒在课桌上' },
+        { id: 'burnout', name: '透支', desc: '精力耗尽，病倒在医院' },
+        { id: 'light', name: '站在光里', desc: '高考 ≥ 600 分' },
+        { id: 'ashore', name: '上岸', desc: '高考 ≥ 500 分' },
+        { id: 'lukewarm', name: '温吞', desc: '高考 ≥ 400 分' },
+        { id: 'make_do', name: '将就', desc: '高考 ≥ 300 分' },
+        { id: 'fail', name: '落榜', desc: '高考 < 300 分' }
+    ];
+
+    // ================= 全局状态 =================
+    let state = {
+        playerName: "", month: 0, stress: 20, energy: 80, kong: 65,
+        subjects: { chinese: 50, math: 50, english: 50, comprehensive: 50 },
+        currentPhase: 'planning', selectedSubject: null, selectedRelief: null,
+        feedInteracted: {}, exam12Done: false, monthlyExam: null,
+        kongMomentsShown: {}, lastRank: null,
+        chatReplied: {}, exam: { currentQ: 0, scores: {}, questions: [] },
+        unlockedEndings: {},
+        tutoringUsed: {}
+    };
+
+    const monthNames = ["9月", "10月", "11月", "12月", "1月", "2月", "3月", "4月", "5月", "6月"];
+    const subjectNames = { chinese: '语文', math: '数学', english: '英语', comprehensive: '综合' };
+
+    function unlockEnding(id) {
+        state.unlockedEndings[id] = true;
+        localStorage.setItem('gaokao_endings', JSON.stringify(state.unlockedEndings));
+    }
+    function loadUnlockedEndings() {
+        const saved = localStorage.getItem('gaokao_endings');
+        if (saved) {
+            try { return JSON.parse(saved); } catch(e) { return {}; }
+        }
+        return {};
+    }
+    state.unlockedEndings = loadUnlockedEndings();
+
+    function startGame() {
+        const input = document.getElementById('player-name-input').value.trim();
+        if (!input) { showToast("请输入你的名字。", true); return; }
+        state.playerName = input;
+        document.getElementById('name-screen').style.display = 'none';
+        document.getElementById('game-container').style.display = 'flex';
+        setBackground('classroom');
+
+        if (kongMoments[0] && !state.kongMomentsShown[0]) {
+            showKongMoment(0, () => { render(); checkBadges(); });
+        } else {
+            render(); checkBadges();
+        }
+    }
+
+    function showToast(msg, isWarm) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg; toast.classList.add('show');
+        if (isWarm) toast.classList.add('warm');
+        setTimeout(() => { toast.classList.remove('show'); toast.classList.remove('warm'); }, 3000);
+    }
+
+    function updateSubjectUI() {
+        ['chinese', 'math', 'english', 'comprehensive'].forEach(sub => {
+            const val = state.subjects[sub];
+            const el = document.getElementById(`val-${sub}`); const bar = document.getElementById(`bar-${sub}`);
+            if (el) el.textContent = val;
+            if (bar) {
+                bar.style.width = `${val}%`;
+                if (val < 30) bar.style.background = '#d35e5e';
+                else if (val >= 80) bar.style.background = '#6b9e6b';
+                else bar.style.background = '#5e8ed3';
+            }
+        });
+        document.getElementById('stat-kong').textContent = state.kong;
+        document.getElementById('stat-stress').textContent = state.stress;
+        document.getElementById('stat-energy').textContent = state.energy;
+        document.getElementById('stat-stress').className = state.stress >= 80 ? 'stat-value stat-high' : 'stat-value';
+        document.getElementById('stat-energy').className = state.energy <= 20 ? 'stat-value stat-low' : 'stat-value';
+    }
+
+    let typeTimer = null;
+    function typeWriter(text, callback) {
+        const box = document.getElementById('text-box'); box.innerHTML = ''; let i = 0;
+        if (typeTimer) clearInterval(typeTimer);
+        typeTimer = setInterval(() => {
+            if (i < text.length) { box.innerHTML += text.charAt(i) === '\n' ? '<br>' : text.charAt(i); i++; }
+            else { clearInterval(typeTimer); box.innerHTML += '<span class="cursor"></span>'; if (callback) callback(); }
+        }, 15);
+    }
+
+    function checkBadges() {
+        const phoneBadge = document.getElementById('phone-badge');
+        const chats = chatDatabase[state.month] || [];
+        const hasUnread = chats.some(c => !state.chatReplied[c.id + "_" + state.month]);
+        phoneBadge.style.display = hasUnread ? 'flex' : 'none';
+    }
+
+    // ================= 孔老师 · 自动事件 =================
+    function showKongMoment(month, callback) {
+        const moment = kongMoments[month];
+        if (!moment || state.kongMomentsShown[month]) { callback(); return; }
+        state.kongMomentsShown[month] = true;
+
+        state.currentPhase = 'kong_moment';
+        document.getElementById('feed-scroll').style.display = 'none';
+        document.getElementById('relief-panel').style.display = 'none';
+        document.getElementById('subjects-panel').style.display = 'none';
+        document.getElementById('text-box').style.display = 'block';
+        document.getElementById('options').style.display = 'flex';
+        document.getElementById('options').innerHTML = '';
+        setBackground('corridor');
+
+        state.kong = Math.min(100, state.kong + moment.kong);
+        updateSubjectUI();
+
+        const text = moment.text.replace(/{name}/g, state.playerName);
+        typeWriter(text, () => {
+            const optionsBox = document.getElementById('options');
+            optionsBox.innerHTML = '';
+            const btn = document.createElement('button');
+            btn.className = 'option-btn warm';
+            btn.innerText = '>> 继续';
+            btn.onclick = () => {
+                showToast(`孔老师好感度 +${moment.kong}`, true);
+                state.currentPhase = 'planning';
+                callback();
+            };
+            optionsBox.appendChild(btn);
+        });
+    }
+
+    // ================= 聊天模块 =================
+    function openPhone() {
+        document.getElementById('phone-screen').style.display = 'flex';
+        renderChatList();
+    }
+    function closePhone() {
+        document.getElementById('phone-screen').style.display = 'none';
+        document.getElementById('chat-detail').style.display = 'none';
+        render(); checkBadges();
+    }
+    function renderChatList() {
+        const content = document.getElementById('phone-content');
+        const detail = document.getElementById('chat-detail');
+        detail.style.display = 'none'; content.style.display = 'flex'; content.innerHTML = '';
+        const chats = chatDatabase[state.month] || [];
+        chats.forEach(chat => {
+            const replied = state.chatReplied[chat.id + "_" + state.month];
+            const item = document.createElement('div');
+            item.className = 'chat-item';
+            item.innerHTML = `
+                <div class="avatar ${chat.color}">${chat.avatar}</div>
+                <div class="chat-info">
+                    <div class="chat-name">${chat.name}</div>
+                    <div class="chat-preview">${chat.messages[chat.messages.length - 1].text.substring(0, 15)}...</div>
+                </div>
+                ${!replied ? '<div class="chat-unread"></div>' : ''}
+            `;
+            item.onclick = () => openChat(chat);
+            content.appendChild(item);
+        });
+        if (chats.length === 0) {
+            content.innerHTML = '<div style="text-align:center;color:#555;font-size:13px;padding:20px;">这个月没有人给你发消息。</div>';
+        }
+    }
+    function openChat(chat) {
+        document.getElementById('phone-content').style.display = 'none';
+        const detail = document.getElementById('chat-detail');
+        detail.style.display = 'flex';
+        document.getElementById('chat-detail-name').textContent = chat.name;
+        const messagesBox = document.getElementById('chat-messages');
+        messagesBox.innerHTML = '';
+        chat.messages.forEach(msg => {
+            const div = document.createElement('div');
+            div.className = `msg ${msg.from}`; div.textContent = msg.text;
+            messagesBox.appendChild(div);
+        });
+        const replied = state.chatReplied[chat.id + "_" + state.month];
+        if (replied) {
+            const myMsg = document.createElement('div');
+            myMsg.className = 'msg me'; myMsg.textContent = replied.myText;
+            messagesBox.appendChild(myMsg);
+            const replyMsg = document.createElement('div');
+            replyMsg.className = 'msg them'; replyMsg.textContent = replied.reply;
+            messagesBox.appendChild(replyMsg);
+        }
+        const optionsBox = document.getElementById('chat-options');
+        optionsBox.innerHTML = '';
+        if (!replied) {
+            chat.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'chat-option-btn'; btn.innerText = opt.text;
+                btn.onclick = () => {
+                    if (opt.effect) {
+                        state.stress = Math.max(0, Math.min(100, state.stress + (opt.effect.stress || 0)));
+                        state.energy = Math.max(0, Math.min(100, state.energy + (opt.effect.energy || 0)));
+                    }
+                    state.chatReplied[chat.id + "_" + state.month] = { myText: opt.text, reply: opt.reply };
+                    updateSubjectUI(); openChat(chat); checkBadges();
+                };
+                optionsBox.appendChild(btn);
+            });
+        }
+        messagesBox.scrollTop = messagesBox.scrollHeight;
+    }
+    function backToChats() {
+        document.getElementById('chat-detail').style.display = 'none';
+        renderChatList();
+    }
+
+    // ================= 减压选择 =================
+    function selectRelief(id) {
+        if (state.selectedRelief) return;
+        const opt = reliefOptions.find(o => o.id === id);
+        if (!opt) return;
+        state.selectedRelief = opt;
+        document.querySelectorAll('.relief-btn').forEach(btn => btn.classList.remove('selected'));
+        event.target.classList.add('selected');
+    }
+
+    // ================= 朋友圈 =================
+    function showFeed() {
+        state.currentPhase = 'feed'; state.feedInteracted = {};
+        const feedScroll = document.getElementById('feed-scroll');
+        const textBox = document.getElementById('text-box');
+        const optionsBox = document.getElementById('options');
+        const panel = document.getElementById('subjects-panel');
+        const reliefPanel = document.getElementById('relief-panel');
+        panel.style.display = 'none'; reliefPanel.style.display = 'none';
+        textBox.style.display = 'none'; optionsBox.style.display = 'none';
+        feedScroll.style.display = 'flex'; setBackground('rain');
+        const feed = feedDatabase[state.month] || [];
+        feedScroll.innerHTML = '';
+        feed.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = 'feed-card'; card.id = `feed-card-${index}`;
+            let actionsHtml = '';
+            if (item.interactions) item.interactions.forEach((action, actionIndex) => {
+                actionsHtml += `<button class="action-btn" data-index="${index}" data-action="${actionIndex}">${action.label}</button>`;
+            });
+            card.innerHTML = `
+                <div class="avatar ${item.color}">${item.avatar}</div>
+                <div class="feed-content">
+                    <div class="feed-name">${item.name}</div>
+                    <div class="feed-text">${item.text}</div>
+                    <div class="feed-meta"><span>${item.time}</span><span>❤️ ${item.likes || '0'}</span></div>
+                    <div class="feed-actions">${actionsHtml}</div>
+                    <div class="feed-replies" id="replies-${index}"></div>
+                </div>`;
+            feedScroll.appendChild(card);
+        });
+        feedScroll.querySelectorAll('.action-btn').forEach(btn => {
+            btn.onclick = (e) => handleInteraction(e.target.getAttribute('data-index'), e.target.getAttribute('data-action'));
+        });
+        optionsBox.style.display = 'flex'; optionsBox.innerHTML = '';
+        const continueBtn = document.createElement('button');
+        continueBtn.className = 'option-btn'; continueBtn.style.borderColor = '#6b9e6b'; continueBtn.style.color = '#b8d8b8';
+        continueBtn.innerText = '放下手机，继续下个月的学习 >>';
+        continueBtn.onclick = () => {
+            feedScroll.style.display = 'none'; textBox.style.display = 'block';
+            state.currentPhase = 'planning'; render(); checkBadges();
+        };
+        optionsBox.appendChild(continueBtn);
+        feedScroll.scrollTop = 0;
+    }
+
+    function handleInteraction(cardIndex, actionIndex) {
+        const feed = feedDatabase[state.month];
+        if (!feed || !feed[cardIndex]) return;
+        const action = feed[cardIndex].interactions[actionIndex];
+        if (state.feedInteracted[cardIndex]) { showToast('你已经回应过这条了。'); return; }
+        if (action.effect) {
+            state.energy = Math.max(0, state.energy + (action.effect.energy || 0));
+            state.stress = Math.max(0, Math.min(100, state.stress + (action.effect.stress || 0)));
+        }
+        state.feedInteracted[cardIndex] = true;
+        const card = document.getElementById(`feed-card-${cardIndex}`);
+        card.querySelectorAll('.action-btn').forEach(btn => btn.disabled = true);
+        const selectedBtn = card.querySelector(`.action-btn[data-action="${actionIndex}"]`);
+        if (selectedBtn) selectedBtn.classList.add('selected');
+        const replyBox = document.getElementById(`replies-${cardIndex}`);
+        replyBox.innerHTML = `<div><span>你：</span>${action.reply}</div>`;
+        replyBox.classList.add('show'); updateSubjectUI();
+    }
+
+    // ================= 反应力小游戏（一次失败即被发现）=================
+    function startReactionGame(type, callback) {
+        const config = type === 'phone'
+            ? { rounds: 3, window: 1500, name: '偷偷玩手机', riskText: '⚠ 班主任来了！', }
+            : { rounds: 4, window: 1100, name: '逃课', riskText: '⚠ 班主任巡视！' };
+
+        const screen = document.getElementById('minigame-screen');
+        const content = document.getElementById('minigame-content');
+        let round = 0;
+        let failed = false;
+        screen.style.display = 'flex';
+
+        function startRound() {
+            if (failed || round >= config.rounds) { endGame(!failed); return; }
+            content.innerHTML = `<div class="mg-status">${config.name}中...</div><div class="mg-hint">保持警惕，随时点击屏幕</div><div class="mg-round">第 ${round + 1} / ${config.rounds} 次</div>`;
+            screen.style.background = 'rgba(20, 20, 20, 0.95)';
+
+            const delay = 800 + Math.random() * 2000;
+            setTimeout(() => {
+                if (failed) return;
+                content.innerHTML = `<div class="mg-danger">${config.riskText}</div><div class="mg-hint">快速点击屏幕！</div>`;
+                screen.style.background = 'rgba(120, 30, 30, 0.95)';
+
+                let resolved = false;
+                const clickHandler = () => {
+                    if (resolved) return;
+                    resolved = true;
+                    screen.removeEventListener('click', clickHandler);
+                    clearTimeout(failTimer);
+                    round++;
+                    setTimeout(startRound, 300);
+                };
+                screen.addEventListener('click', clickHandler);
+
+                const failTimer = setTimeout(() => {
+                    if (resolved) return;
+                    resolved = true;
+                    failed = true;
+                    screen.removeEventListener('click', clickHandler);
+                    content.innerHTML = `<div class="mg-danger">❌ 被发现了！</div>`;
+                    screen.style.background = 'rgba(80, 20, 20, 0.95)';
+                    setTimeout(() => { endGame(false); }, 900);
+                }, config.window);
+            }, delay);
+        }
+
+        function endGame(success) {
+            screen.style.display = 'none';
+            screen.style.background = 'rgba(20, 20, 20, 0.95)';
+            content.innerHTML = '';
+            callback(success);
+        }
+
+        startRound();
+    }
+
+    // ================= 补课系统 =================
+    const tutoringMonths = [0, 2, 4, 6, 8];
+
+    function canTutor() {
+        return tutoringMonths.includes(state.month) && !state.tutoringUsed[state.month];
+    }
+
+    function showTutoringPanel() {
+        const textBox = document.getElementById('text-box');
+        const optionsBox = document.getElementById('options');
+        const reliefPanel = document.getElementById('relief-panel');
+        const panel = document.getElementById('subjects-panel');
+        const feedScroll = document.getElementById('feed-scroll');
+
+        state.currentPhase = 'tutoring';
+        feedScroll.style.display = 'none';
+        reliefPanel.style.display = 'none';
+        panel.style.display = 'block';
+        textBox.style.display = 'block';
+        optionsBox.style.display = 'flex';
+        setBackground('classroom');
+
+        textBox.innerHTML = `【补课】\n\n这个月，你报了一个补习班。\n\n你决定补哪一科？\n\n（每两个月可以补一次，每次 +15。）`;
+        optionsBox.innerHTML = '';
+
+        ['chinese', 'math', 'english', 'comprehensive'].forEach(sub => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = `${subjectNames[sub]}（当前 ${state.subjects[sub]}）`;
+            btn.onclick = () => {
+                state.subjects[sub] = Math.min(100, state.subjects[sub] + 15);
+                state.tutoringUsed[state.month] = true;
+                state.energy = Math.max(0, state.energy - 10);
+                state.stress = Math.min(100, state.stress + 5);
+                updateSubjectUI();
+                showToast(`补课完成：${subjectNames[sub]} +15`, true);
+                setTimeout(() => {
+                    state.currentPhase = 'planning';
+                    render();
+                }, 800);
+            };
+            optionsBox.appendChild(btn);
+        });
+
+        const skipBtn = document.createElement('button');
+        skipBtn.className = 'option-btn';
+        skipBtn.style.borderColor = '#555';
+        skipBtn.style.color = '#888';
+        skipBtn.innerText = '不补课，直接进入本月';
+        skipBtn.onclick = () => {
+            state.tutoringUsed[state.month] = true;
+            state.currentPhase = 'planning';
+            render();
+        };
+        optionsBox.appendChild(skipBtn);
+    }
+
+    // ================= 12月模拟考 =================
+    function startMonthlyExam(callback) {
+        state.currentPhase = 'monthly_exam';
+        const questions = [];
+        ['chinese', 'math', 'english', 'comprehensive'].forEach(sub => {
+            const pool = [...questionBank[sub]].sort(() => Math.random() - 0.5);
+            questions.push({ subject: sub, ...pool[0] });
+            questions.push({ subject: sub, ...pool[1] });
+        });
+        state.monthlyExam = {
+            questions: questions.sort(() => Math.random() - 0.5),
+            currentQ: 0,
+            correct: 0,
+            total: questions.length,
+            callback
+        };
+        renderMonthlyExam();
+    }
+
+    function renderMonthlyExam() {
+        document.getElementById('feed-scroll').style.display = 'none';
+        document.getElementById('relief-panel').style.display = 'none';
+        document.getElementById('subjects-panel').style.display = 'none';
+        document.getElementById('text-box').style.display = 'block';
+        document.getElementById('options').style.display = 'flex';
+        setBackground('exam');
+
+        const exam = state.monthlyExam;
+        const q = exam.questions[exam.currentQ];
+        if (!q) return;
+
+        document.getElementById('text-box').innerHTML =
+            `【12月模拟考试 · 第 ${exam.currentQ + 1} / ${exam.total} 题】\n\n` +
+            `科目：${subjectNames[q.subject]}\n\n` +
+            `题目：${q.q}`;
+
+        const optionsBox = document.getElementById('options');
+        optionsBox.innerHTML = '';
+        q.a.forEach((answerText, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = answerText;
+            btn.onclick = () => {
+                if (index === q.correct) { exam.correct++; showToast(`✅ 答对`); }
+                else { showToast(`❌ 答错`); }
+                exam.currentQ++;
+                if (exam.currentQ >= exam.total) finishMonthlyExam();
+                else renderMonthlyExam();
+            };
+            optionsBox.appendChild(btn);
+        });
+    }
+
+    function finishMonthlyExam() {
+        const exam = state.monthlyExam;
+        const correctRate = exam.correct / exam.total;
+        const subs = Object.values(state.subjects);
+        const baseAvg = subs.reduce((a, b) => a + b, 0) / subs.length;
+        const performance = baseAvg * 0.5 + correctRate * 100 * 0.5;
+        const rank = Math.max(1, Math.min(48, Math.round(48 - performance * 0.47)));
+        state.lastRank = rank;
+
+        let text = `【12月模拟考试结束】\n\n`;
+        text += `你答对了 ${exam.correct} / ${exam.total} 题。\n\n`;
+        text += `……\n\n成绩单发下来了。\n\n`;
+        text += `你的班级排名：第 ${rank} 名（全班共48人）\n\n`;
+
+        let stressDelta = 0;
+        if (rank <= 5) { text += "班主任在成绩单上多看了你两眼。\n\n你坐在座位上，没敢表现出高兴。"; stressDelta = -5; }
+        else if (rank <= 14) { text += "你属于中上游。没有人恭喜你，也没有人批评你。\n\n像一杯温水。"; stressDelta = +2; }
+        else if (rank <= 20) { text += "中等偏下。老师在讲台上说：“有些同学该醒醒了。”\n\n你不敢确定那是不是在说你。"; stressDelta = +6; }
+        else if (rank <= 30) { text += "倒数。\n\n家长会通知已经发下来了。你把成绩单压在书桌最下面。"; stressDelta = +12; }
+        else { text += "你几乎是最后几名了。\n\n你把成绩单折起来塞进书包，不想让任何人看到。"; stressDelta = +20; }
+
+        state.stress = Math.max(0, Math.min(100, state.stress + stressDelta));
+        updateSubjectUI();
+
+        document.getElementById('text-box').style.display = 'block';
+        document.getElementById('options').style.display = 'flex';
+        document.getElementById('options').innerHTML = '';
+        document.getElementById('subjects-panel').style.display = 'none';
+        setBackground('exam');
+
+        typeWriter(text, () => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = '>> 参加家长会';
+            btn.onclick = () => {
+                const cb = exam.callback;
+                state.monthlyExam = null;
+                showParentMeeting(rank, cb);
+            };
+            document.getElementById('options').appendChild(btn);
+        });
+    }
+
+    // ================= 家长会 =================
+    function showParentMeeting(rank, callback) {
+        state.currentPhase = 'parent_meeting';
+        setBackground('corridor');
+        document.getElementById('feed-scroll').style.display = 'none';
+        document.getElementById('relief-panel').style.display = 'none';
+        document.getElementById('subjects-panel').style.display = 'none';
+        document.getElementById('text-box').style.display = 'block';
+        document.getElementById('options').style.display = 'flex';
+        document.getElementById('options').innerHTML = '';
+
+        let text = `【家长会】\n\n12月，家长会。\n\n母亲来了。\n\n她坐在你的座位上，翻着你的课本，用手抚平了某一页的折角。\n\n你站在走廊里。\n\n透过窗户，你能看到她的背影。\n\n老师在讲台上说话，家长们低着头，有人在记笔记，有人在看手机。\n\n母亲一直在听。\n\n你没有进去。\n\n……\n\n家长会结束了。\n\n母亲从教室里走出来。\n\n她的表情，`;
+
+        let stressDelta = 0;
+
+        if (rank <= 14) {
+            text += `很平静。\n\n嘴角是往上翘的。\n\n“老师表扬你了。”她说，把成绩单递给你，“说你进步很大。”\n\n她顿了顿，又说：\n\n“妈就知道你能行。”\n\n“这次别骄傲啊。后面还有二模三模。”\n\n“想吃什么，妈回去给你做。”\n\n“但是——还是要抓紧。听见没？”\n\n她一路走，一路说。\n\n你跟在后面，什么都没说。\n\n你很久没见她这样了。`;
+            stressDelta = -20;
+        } else if (rank <= 20) {
+            text += `说不上来。\n\n不是生气，也不是高兴。\n\n只是有点皱。\n\n“老师说，你这个成绩，卡在中间。”她说，“上不上，下不下。”\n\n“你再努力一点，就能上去。”\n\n“但是不努力，就会掉下去。”\n\n“听见没有？”\n\n“你别以为妈不知道，你最近晚上都在玩手机。”\n\n“你看隔壁小雨，人家这次进了前十。”\n\n“妈不要求你考第一，但你至少得对得起自己。”\n\n“你说对不对？”\n\n“你倒是说话啊。”\n\n她一路说，一路走。\n\n你跟在后面，嗯了几声。`;
+            stressDelta = +12;
+        } else {
+            text += `很沉。\n\n一路上，她都没有说话。\n\n“你怎么考的？”\n\n声音很低。\n\n“你说你怎么考的？”\n\n“妈辛辛苦苦供你读书，你就这么回报我？”\n\n“隔壁小雨人家进了前十，你呢？”\n\n“你还好意思回家？”\n\n“我都不好意思跟别人说你的成绩。”\n\n“你说你对得起谁？”\n\n她越说越大声。\n\n走到校门口的时候，她停住了，背对着你。\n\n你看到她抬手，抹了一下眼睛。\n\n然后她说：\n\n“回家吧。”\n\n再没说话。`;
+            stressDelta = +30;
+        }
+
+        state.stress = Math.max(0, Math.min(100, state.stress + stressDelta));
+        updateSubjectUI();
+
+        typeWriter(text, () => {
+            const optionsBox = document.getElementById('options');
+            optionsBox.innerHTML = '';
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = '>> 回家';
+            btn.onclick = () => {
+                state.currentPhase = 'planning';
+                callback();
+            };
+            optionsBox.appendChild(btn);
+        });
+    }
+
+    // ================= 月度推进 =================
+    function advanceMonth() {
+        if (!state.selectedRelief) { showToast("请先选择一种释放压力的方式！", true); return; }
+        const relief = state.selectedRelief;
+        state.selectedRelief = null;
+        document.querySelectorAll('.relief-btn').forEach(btn => btn.classList.remove('selected'));
+
+        state.energy = Math.max(0, Math.min(100, state.energy + (relief.effect.energy || 0)));
+        state.stress = Math.max(0, Math.min(100, state.stress + (relief.effect.stress || 0)));
+
+        if (relief.minigame) {
+            startReactionGame(relief.minigame, (success) => {
+                let caughtText = "";
+                if (!success) {
+                    const subjectsList = ['chinese', 'math', 'english', 'comprehensive'];
+                    const randomSub = subjectsList[Math.floor(Math.random() * subjectsList.length)];
+                    caughtText = `\n\n💥 你被班主任发现了！\n\n“你居然${relief.id === 'phone' ? '在玩手机' : '逃课'}！我这就给你家长打电话！”\n\n（压力 +${relief.caught.stress}，${subjectNames[randomSub]} ${relief.caught.score}，精力 ${relief.caught.energy || 0}）`;
+                    state.stress = Math.min(100, state.stress + (relief.caught.stress || 0));
+                    state.energy = Math.max(0, state.energy + (relief.caught.energy || 0));
+                    state.subjects[randomSub] = Math.max(0, state.subjects[randomSub] + (relief.caught.score || 0));
+                } else {
+                    caughtText = `\n\n✨ 好险！你在班主任发现之前收起了${relief.id === 'phone' ? '手机' : '脚步'}。\n\n（没有被发现。）`;
+                }
+                continueAdvanceMonth(caughtText);
+            });
+        } else {
+            continueAdvanceMonth("");
+        }
+    }
+
+    function continueAdvanceMonth(caughtText) {
+        state.energy = Math.min(100, state.energy + 10);
+        state.stress = Math.min(100, state.stress + 8);
+
+        const subjects = ['chinese', 'math', 'english', 'comprehensive'];
+        subjects.forEach(sub => {
+            if (sub !== state.selectedSubject) {
+                state.subjects[sub] = Math.max(0, state.subjects[sub] - (Math.floor(Math.random() * 4) + 2));
+            } else {
+                const gain = Math.floor(Math.random() * 8) + 8;
+                state.subjects[sub] = Math.min(100, state.subjects[sub] + gain);
+                state.energy = Math.max(0, state.energy - 15);
+                state.stress = Math.min(100, state.stress + 15);
+            }
+        });
+
+        const totalScore = subjects.reduce((sum, sub) => sum + state.subjects[sub], 0);
+        const avgScore = Math.floor(totalScore / 4);
+        let eventText = "";
+
+        if (avgScore < 40) {
+            const events = [
+                { text: "💢 班主任的咆哮：“你这个分数，连个好点的大专都考不上！”", stress: +20 },
+                { text: "📞 家长会后：母亲沉默了很久，最后只说了一句“吃饭吧”。", stress: +18 },
+                { text: "📝 办公室谈话：数学老师当着其他老师的面说“这个学生没救了”。", stress: +22 },
+                { text: "💬 同学在群里发成绩，你排在倒数第五。没有人 @ 你，但你觉得所有人都在看你。", stress: +15 },
+                { text: "🌙 深夜你看着错题本，发现自己连最基础的公式都记不住了。", stress: +16 },
+                { text: "📱 母亲发来消息：“隔壁家的孩子这次又考了第一名。”她没有说别的。", stress: +20 }
+            ];
+            const picked = events[Math.floor(Math.random() * events.length)];
+            eventText = picked.text; state.stress = Math.min(100, state.stress + picked.stress);
+        } else if (avgScore < 60) {
+            const events = [
+                { text: "📉 家长会后：母亲叹了口气：“没事，咱们再努努力。”", stress: +10 },
+                { text: "📝 班主任在走廊上拦住你：“你这个成绩，再不抓紧就来不及了。”", stress: +12 },
+                { text: "😔 你看到韩梅梅的朋友圈：“有些人明明很努力，成绩就是上不去。说的就是我。”", stress: +8 },
+                { text: "📚 你翻开错题本，发现自己一直在错的题型还是不会。", stress: +9 },
+                { text: "🍜 晚饭时，父亲突然说：“要不考虑一下单招？”你放下筷子，没说话。", stress: +14 },
+                { text: "👀 你路过办公室，听到有老师在讨论：“这届学生普遍不行。”", stress: +10 }
+            ];
+            const picked = events[Math.floor(Math.random() * events.length)];
+            eventText = picked.text; state.stress = Math.min(100, state.stress + picked.stress);
+        } else if (avgScore > 80) {
+            const events = [
+                { text: "✨ 短暂的平静：老师难得没有点你的名。", stress: -5 },
+                { text: "📝 班主任在走廊上拍了拍你的肩膀：“保持住。”", stress: -8 },
+                { text: "😐 同桌看了一眼你的分数，没有说话，只是默默翻开了自己的错题本。", stress: -5 },
+                { text: "📱 母亲发来消息：“别太累了，注意身体。”你回复了一个“嗯”。", stress: -10 },
+                { text: "🌙 你难得在12点前躺下，看着天花板，心里却更慌了——万一下次掉下来怎么办。", stress: -3 },
+                { text: "🏫 走在走廊上，你觉得自己稍微可以抬起头了。但这种感觉只持续了三秒钟。", stress: -6 }
+            ];
+            const picked = events[Math.floor(Math.random() * events.length)];
+            eventText = picked.text; state.stress = Math.max(0, state.stress + picked.stress);
+        } else {
+            const events = [
+                { text: "😐 成绩中等，老师没有表扬你，也没有批评你。你觉得自己像是透明人。", stress: +3 },
+                { text: "📊 成绩单发下来，你看到了自己的排名。不靠前，也不垫底。你把它折起来塞进书包。", stress: +5 },
+                { text: "📝 家长会上，母亲没有主动和别的家长说话。回家后也没有提成绩的事。", stress: +4 },
+                { text: "😶 你在走廊上遇到了班主任，他看了你一眼，什么都没说就走了。", stress: +3 }
+            ];
+            const picked = events[Math.floor(Math.random() * events.length)];
+            eventText = picked.text; state.stress = Math.min(100, state.stress + picked.stress);
+        }
+
+        if (state.stress >= 100) {
+            unlockEnding('sink');
+            state.currentPhase = 'ending';
+            document.getElementById('feed-scroll').style.display = 'none';
+            document.getElementById('relief-panel').style.display = 'none';
+            document.getElementById('text-box').style.display = 'block'; setBackground('night');
+            typeWriter("【结局 · 沉没】\n\n你的大脑发出一声尖锐的耳鸣。\n\n你倒在了课桌上，被送去了医务室。\n\n你撑不住了。\n\n高考，已经与你无关了。", () => {
+                showEndingGallery();
+            });
+            return;
+        }
+        if (state.energy <= 0) {
+            unlockEnding('burnout');
+            state.currentPhase = 'ending';
+            document.getElementById('feed-scroll').style.display = 'none';
+            document.getElementById('relief-panel').style.display = 'none';
+            document.getElementById('text-box').style.display = 'block'; setBackground('night');
+            typeWriter("【结局 · 透支】\n\n你连续熬夜，终于病倒了。\n\n高烧不退，在医院里挂水。\n\n身体先于意志垮掉了。", () => {
+                showEndingGallery();
+            });
+            return;
+        }
+
+        state.month++;
+        if (state.month >= 10) {
+            state.currentPhase = 'ending_pre_exam';
+            document.getElementById('feed-scroll').style.display = 'none';
+            document.getElementById('relief-panel').style.display = 'none';
+            document.getElementById('text-box').style.display = 'block'; setBackground('exam');
+            typeWriter("六月，高考。\n\n你坐在陌生的考场里，手心全是汗。\n\n监考老师拆开试卷袋，那一刻，你脑子里一片空白。\n\n开始答题。", () => {
+                renderOptions([{ text: "拿起笔", next: 'start_exam' }]);
+            });
+            return;
+        }
+        state.selectedSubject = null;
+
+        const showNext = () => {
+            if (caughtText) {
+                state.currentPhase = 'caught_event';
+                document.getElementById('feed-scroll').style.display = 'none';
+                document.getElementById('relief-panel').style.display = 'none';
+                document.getElementById('text-box').style.display = 'block';
+                document.getElementById('options').innerHTML = '';
+                document.getElementById('options').style.display = 'flex';
+                document.getElementById('text-box').innerHTML = caughtText;
+                const btn = document.createElement('button');
+                btn.className = 'option-btn'; btn.innerText = '>> 继续';
+                btn.onclick = () => showFeed();
+                document.getElementById('options').appendChild(btn);
+                return;
+            }
+            showFeed();
+            if (eventText) setTimeout(() => showToast(eventText), 500);
+            checkBadges();
+        };
+
+        const afterExam = () => {
+            if (kongMoments[state.month] && !state.kongMomentsShown[state.month]) {
+                showKongMoment(state.month, showNext);
+            } else {
+                showNext();
+            }
+        };
+
+        if (state.month === 3 && !state.exam12Done) {
+            state.exam12Done = true;
+            startMonthlyExam(afterExam);
+        } else {
+            afterExam();
+        }
+    }
+
+    // ================= 高考 =================
+    function generateExam() {
+        const examQuestions = [];
+        ['chinese', 'math', 'english', 'comprehensive'].forEach(sub => {
+            const pool = questionBank[sub];
+            examQuestions.push({ subject: sub, ...pool[Math.floor(Math.random() * pool.length)] });
+        });
+        state.exam.questions = examQuestions.sort(() => Math.random() - 0.5);
+        state.exam.currentQ = 0;
+        state.exam.scores = { chinese: 0, math: 0, english: 0, comprehensive: 0 };
+        state.currentPhase = 'exam'; render();
+    }
+
+    function finishExam() {
+        state.currentPhase = 'ending';
+        const baseScores = state.subjects; const examScores = state.exam.scores;
+        let finalTotal = 0; let subjectResults = [];
+        ['chinese', 'math', 'english', 'comprehensive'].forEach(sub => {
+            const base = Math.floor(baseScores[sub] * 1.5);
+            const exam = examScores[sub] * 10;
+            const total = base + exam; finalTotal += total;
+            subjectResults.push(`${subjectNames[sub]}：${total} 分`);
+        });
+
+        const scoreText = `考试结束。\n\n你放下笔，整个人像被抽空。\n\n—————— 高考成绩 ——————\n\n${subjectResults.join('\n')}\n\n总分：${finalTotal} / 700\n\n`;
+
+        setBackground('night');
+        document.getElementById('text-box').style.display = 'block';
+        document.getElementById('relief-panel').style.display = 'none';
+        document.getElementById('subjects-panel').style.display = 'none';
+        document.getElementById('feed-scroll').style.display = 'none';
+
+        typeWriter(scoreText, () => {
+            const optionsBox = document.getElementById('options');
+            optionsBox.innerHTML = '';
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = finalTotal >= 500 ? '>> 参加毕业典礼' : '>> 面对结局';
+            btn.onclick = () => {
+                if (finalTotal >= 500) showGraduationCeremony(finalTotal);
+                else showFinalEnding(finalTotal);
+            };
+            optionsBox.appendChild(btn);
+        });
+    }
+
+    // ================= 毕业典礼演讲 =================
+    function showGraduationCeremony(finalTotal) {
+        setBackground('corridor');
+        let text = `六月末。毕业典礼。\n\n礼堂里坐满了人。\n\n校长念完优秀毕业生名单，主持的老师说：\n\n“下面有请学生代表发言。”\n\n有人推了推你的肩膀。\n\n你站起来，走上了台。\n\n你站在话筒前，看着台下。\n\n几百个人，几百张脸。\n\n你想说的话很多，但最后只说了一句：\n\n“谢谢大家。谢谢这三年。”\n\n台下响起掌声。\n\n你走下来的时候，看见孔老师站在最后一排。\n\n他也鼓着掌。`;
+        typeWriter(text, () => {
+            const optionsBox = document.getElementById('options');
+            optionsBox.innerHTML = '';
+            const btn = document.createElement('button');
+            btn.className = 'option-btn warm';
+            btn.innerText = '>> 典礼结束了';
+            btn.onclick = () => showGroupPhoto(finalTotal);
+            optionsBox.appendChild(btn);
+        });
+    }
+
+    // ================= 合照 =================
+    function showGroupPhoto(finalTotal) {
+        setBackground('corridor');
+        let text = `典礼结束后，同学们在操场上合影。\n\n有人在喊：“孔老师，一起拍一张！”\n\n孔老师走过来，站在人群边缘。\n\n大家都往中间挤。你没动，站在原来的位置。\n\n快门按下的那一刻，你想说点什么，但什么也没说出来。\n\n照片洗出来后，你把它夹在日记本里。\n\n很多年以后，你还会拿出来看。\n\n孔老师站在最边上，微微地笑着。\n\n——在那个所有老师都看重成绩的三年里，只有他，不管你考多少分，都把你当成一个人来尊重。\n\n他从来没有对你说过一句重话。也从来没有因为你成绩不好而少看你一眼。`;
+        if (state.kong >= 85) {
+            text += `\n\n你后来才明白，那种尊重，比任何一句表扬都难得。`;
+        }
+        typeWriter(text, () => {
+            const optionsBox = document.getElementById('options');
+            optionsBox.innerHTML = '';
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = '>> 结局';
+            btn.onclick = () => showFinalEnding(finalTotal);
+            optionsBox.appendChild(btn);
+        });
+    }
+
+    // ================= 不同结局 =================
+    function showFinalEnding(finalTotal) {
+        setBackground('night');
+        let endingTitle = "";
+        let endingText = "";
+        let endingId = "";
+
+        if (finalTotal >= 600) {
+            endingId = 'light';
+            endingTitle = "结局 · 站在光里";
+            endingText = "你考上了一所 985/211。\n\n所有人都在恭喜你。\n\n父母请亲戚吃了饭，席间反反复复地说着“我们家孩子”。\n\n你笑着，说了很多次谢谢。\n\n但只有你知道，这三年，你丢掉的东西，比得到的更多。";
+        } else if (finalTotal >= 500) {
+            endingId = 'ashore';
+            endingTitle = "结局 · 上岸";
+            endingText = "你考上了一所一本。\n\n父母很高兴。\n\n亲戚们纷纷打电话来。\n\n你坐在自己房间里，看着窗外的天。\n\n不知道自己在想什么。";
+        } else if (finalTotal >= 400) {
+            endingId = 'lukewarm';
+            endingTitle = "结局 · 温吞";
+            endingText = "你考上了一所普通本科。\n\n不算好，也不算差。\n\n你想起三年前刚入学时，自己说过的话。\n\n好像是很久以前的事了。";
+        } else if (finalTotal >= 300) {
+            endingId = 'make_do';
+            endingTitle = "结局 · 将就";
+            endingText = "你上了一所专科。\n\n亲戚问起时，父母只能含糊地说“还在读”。\n\n你没有反驳什么。\n\n只是偶尔会想，如果那几个月再努力一点，会不会不一样。";
+        } else {
+            endingId = 'fail';
+            endingTitle = "结局 · 落榜";
+            endingText = "你落榜了。\n\n家里弥漫着死一般的寂静。\n\n你把自己关在房间里，看着窗外的天。\n\n不知道未来在哪里。";
+        }
+
+        unlockEnding(endingId);
+
+        if (state.kong >= 85 && finalTotal < 500) {
+            endingText += "\n\n————————\n\n毕业典礼那天，你在走廊里遇到了孔老师。\n\n“孔老师好。”你说。\n\n他点点头，像三年前那个开学第一天一样。\n\n“再见啊。”他说。\n\n然后就走了。\n\n你站在原地，看着他的背影转过走廊的拐角。\n\n忽然想起拔草那天、大扫除那天、你站起来回答问题那天——\n\n他好像一直都是这样，不声不响地，把该做的都做了。\n\n他从来没有因为你的成绩差，就少看你一眼。\n\n你张了张嘴，那声“谢谢”最终没能说出口。";
+        }
+
+        const fullText = `【${endingTitle}】\n\n${endingText}`;
+        typeWriter(fullText, () => {
+            setTimeout(showEndingGallery, 1500);
+        });
+    }
+
+    // ================= 结局图鉴 =================
+    function showEndingGallery() {
+        state.currentPhase = 'ending_gallery';
+        setBackground('night');
+        document.getElementById('feed-scroll').style.display = 'none';
+        document.getElementById('relief-panel').style.display = 'none';
+        document.getElementById('subjects-panel').style.display = 'none';
+        document.getElementById('text-box').style.display = 'none';
+        document.getElementById('options').style.display = 'none';
+
+        const optionsBox = document.getElementById('options');
+        optionsBox.innerHTML = '';
+        optionsBox.style.display = 'flex';
+
+        let html = `<div style="font-size:14px;color:#d3a75e;letter-spacing:3px;margin-bottom:12px;text-align:center;">—————— 结局图鉴 ——————</div>`;
+        html += `<div class="ending-list">`;
+        allEndings.forEach(e => {
+            const unlocked = state.unlockedEndings[e.id];
+            html += `<div class="ending-item ${unlocked ? 'unlocked' : 'locked'}">
+                <div>
+                    <div class="ending-name">${unlocked ? '✓ ' + e.name : '？？？'}</div>
+                    <div class="ending-tag">${unlocked ? e.desc : '未解锁'}</div>
+                </div>
+                <div class="ending-tag">${unlocked ? '已解锁' : '—'}</div>
+            </div>`;
+        });
+        html += `</div>`;
+        html += `<div style="text-align:center;font-size:12px;color:#666;margin-top:15px;letter-spacing:2px;">已解锁 ${Object.keys(state.unlockedEndings).filter(k => allEndings.find(e => e.id === k)).length} / ${allEndings.length}</div>`;
+
+        const container = document.createElement('div');
+        container.style.width = '100%';
+        container.innerHTML = html;
+        optionsBox.appendChild(container);
+
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.style.marginTop = '15px';
+        btn.innerText = '>> 重来一次';
+        btn.onclick = () => resetGame();
+        optionsBox.appendChild(btn);
+    }
+
+    // ================= 渲染 =================
+    function render() {
+        document.getElementById('stat-month').textContent = monthNames[state.month] || '6月';
+        updateSubjectUI();
+        const panel = document.getElementById('subjects-panel');
+        const reliefPanel = document.getElementById('relief-panel');
+        const optionsBox = document.getElementById('options');
+        const textBox = document.getElementById('text-box');
+        const feedScroll = document.getElementById('feed-scroll');
+
+        if (state.currentPhase === 'planning') {
+            if (canTutor()) {
+                showTutoringPanel();
+                return;
+            }
+
+            feedScroll.style.display = 'none'; textBox.style.display = 'block';
+            panel.style.display = 'block'; setBackground('classroom');
+            textBox.innerHTML = `【${monthNames[state.month]}】\n\n这个月，你决定主攻哪一科？\n\n（主攻科目大幅提升，其他科目掉分。请谨慎选择。）`;
+            optionsBox.style.display = 'flex'; optionsBox.innerHTML = '';
+            ['chinese', 'math', 'english', 'comprehensive'].forEach(sub => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = subjectNames[sub];
+                btn.onclick = () => {
+                    state.selectedSubject = sub;
+                    Array.from(optionsBox.children).forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    reliefPanel.style.display = 'flex';
+                    let endBtn = document.getElementById('end-month-btn');
+                    if (endBtn) endBtn.remove();
+                    endBtn = document.createElement('button');
+                    endBtn.id = 'end-month-btn'; endBtn.className = 'option-btn';
+                    endBtn.style.borderColor = '#6b9e6b'; endBtn.style.color = '#b8d8b8';
+                    endBtn.innerText = '>> 结束本月，迎接考试与审判 <<';
+                    endBtn.onclick = advanceMonth; optionsBox.appendChild(endBtn);
+                };
+                optionsBox.appendChild(btn);
+            });
+        } else if (state.currentPhase === 'exam') {
+            feedScroll.style.display = 'none'; reliefPanel.style.display = 'none';
+            textBox.style.display = 'block'; panel.style.display = 'none';
+            optionsBox.style.display = 'flex'; setBackground('exam');
+            const q = state.exam.questions[state.exam.currentQ];
+            if (!q) return;
+            textBox.innerHTML = `【高考 · 第 ${state.exam.currentQ + 1} / ${state.exam.questions.length} 题】\n\n` +
+                `科目：${subjectNames[q.subject]}\n\n` +
+                `题目：${q.q}`;
+            optionsBox.innerHTML = '';
+            q.a.forEach((answerText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn'; btn.innerText = answerText;
+                btn.onclick = () => {
+                    if (index === q.correct) { state.exam.scores[q.subject] += 3; showToast(`✅ 答对，${subjectNames[q.subject]} +3`); }
+                    else { showToast(`❌ 答错，${subjectNames[q.subject]} +0`); }
+                    state.exam.currentQ++;
+                    if (state.exam.currentQ >= state.exam.questions.length) finishExam();
+                    else render();
+                };
+                optionsBox.appendChild(btn);
+            });
+        }
+    }
+
+    function renderOptions(opts) {
+        const optionsBox = document.getElementById('options'); optionsBox.innerHTML = '';
+        opts.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn'; btn.innerText = opt.text;
+            btn.onclick = () => { if (opt.next === 'reset') resetGame(); if (opt.next === 'start_exam') generateExam(); };
+            optionsBox.appendChild(btn);
+        });
+    }
+
+    function saveGame() { localStorage.setItem('gaokao_save', JSON.stringify(state)); showToast('已存档'); }
+    function loadGame() {
+        const saved = localStorage.getItem('gaokao_save');
+        if (saved) {
+            state = JSON.parse(saved);
+            if (!state.kongMomentsShown) state.kongMomentsShown = {};
+            if (!state.unlockedEndings) state.unlockedEndings = loadUnlockedEndings();
+            if (!state.tutoringUsed) state.tutoringUsed = {};
+            render(); checkBadges(); showToast('读档成功');
+        } else { showToast('没有找到存档'); }
+    }
+    function resetGame() {
+        const savedEndings = state.unlockedEndings || loadUnlockedEndings();
+        state = {
+            playerName: state.playerName || "同学", month: 0, stress: 20, energy: 80, kong: 65,
+            subjects: { chinese: 50, math: 50, english: 50, comprehensive: 50 },
+            currentPhase: 'planning', selectedSubject: null, selectedRelief: null,
+            feedInteracted: {}, exam12Done: false, monthlyExam: null,
+            kongMomentsShown: {}, lastRank: null,
+            chatReplied: {}, exam: { currentQ: 0, scores: {}, questions: [] },
+            unlockedEndings: savedEndings,
+            tutoringUsed: {}
+        };
+        localStorage.removeItem('gaokao_save');
+        document.getElementById('feed-scroll').style.display = 'none';
+        document.getElementById('relief-panel').style.display = 'none';
+        setBackground('classroom');
+        if (kongMoments[0] && !state.kongMomentsShown[0]) {
+            showKongMoment(0, () => { render(); checkBadges(); });
+        } else {
+            render(); checkBadges();
+        }
+    }
+
+    document.getElementById('btn-save').onclick = saveGame;
+    document.getElementById('btn-load').onclick = loadGame;
+    document.getElementById('game-container').style.display = 'none';
+</script>
+</body>
+</html>
